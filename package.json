@@ -1,0 +1,54 @@
+{
+  "name": "bubble-maker",
+  "version": "2.0.0",
+  "description": "Soap-bubble physics and rendering for the web: bubbles that grow, push each other and pack into a honeycomb. Framework-free, tiny, fully configurable.",
+  "keywords": [
+    "bubbles",
+    "physics",
+    "canvas",
+    "animation",
+    "honeycomb",
+    "hexagon",
+    "ui",
+    "interactive"
+  ],
+  "author": "José Manuel Ligero Márquez (neoligero)",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./iife": "./dist/bubble-maker.global.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.es.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neoligero/bubble-maker-2.0.git"
+  },
+  "homepage": "https://github.com/neoligero/bubble-maker-2.0#readme",
+  "bugs": {
+    "url": "https://github.com/neoligero/bubble-maker-2.0/issues"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "demo": "node scripts/build.mjs --demo",
+    "prepublishOnly": "npm test",
+    "prepare": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0"
+  }
+}

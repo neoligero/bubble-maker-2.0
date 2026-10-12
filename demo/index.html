@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bubble Maker 2.0</title>
+<meta name="description" content="Soap-bubble physics and rendering for the web. Live, configurable demo." />
+<style>
+  :root { --ivory: #f7f4ee; --ink: #1c1a17; --muted: #857d70; --gold: #c4a052; --line: rgba(28,26,23,.12); --night: #0e0c0a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--ivory); }
+  main { display: grid; min-height: 100svh; }
+  .stage { position: relative; min-height: 62svh; background: radial-gradient(90% 80% at 50% 30%, #fffaf0, #f1ebdf 65%, #e7dfcf); transition: background .4s; }
+  .stage.dark { background: radial-gradient(90% 80% at 50% 30%, #1d1912, #0e0c0a 70%); }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: pan-y; }
+  .hint { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: 12px; letter-spacing: .08em; color: var(--muted); pointer-events: none; }
+  aside > *, .stage { min-width: 0; }
+  aside { padding: 24px clamp(18px, 4vw, 40px) 40px; border-top: 1px solid var(--line); background: #fff; display: grid; gap: 22px; align-content: start; }
+  h1 { margin: 0; font-size: 26px; font-weight: 500; letter-spacing: -.03em; }
+  h1 small { font-size: 13px; color: var(--muted); font-weight: 400; letter-spacing: 0; margin-left: 8px; }
+  p { margin: 0; color: #625b50; }
+  a { color: inherit; }
+  h2 { margin: 0 0 10px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; margin-bottom: 10px; }
+  .row label { font-size: 13px; }
+  .row output { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted); min-width: 3ch; text-align: right; }
+  .row input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--gold); }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { font: inherit; font-size: 13px; padding: 0 16px; height: 40px; border-radius: 4px; border: 0; cursor: pointer; background: var(--ink); color: var(--ivory); }
+  button.line { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px rgba(28,26,23,.35); }
+  button:hover { background: #ead8a8; color: var(--ink); }
+  .pal { border-top: 1px solid var(--line); padding: 12px 0 2px; }
+  .pal h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+  .swatches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
+  .swatches label { display: grid; gap: 4px; font-size: 11px; color: var(--muted); }
+  .swatches input { min-width: 0; width: 100%; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 4px; background: none; }
+  pre { white-space: pre-wrap; margin: 0; padding: 14px; border-radius: 6px; background: #17140f; color: #ead8a8; font-size: 12px; overflow: auto; max-height: 220px; }
+  @media (min-width: 960px) { main { grid-template-columns: minmax(0, 1fr) 380px; } aside { border-top: 0; border-left: 1px solid var(--line); max-height: 100svh; overflow: auto; } .stage { min-height: 100svh; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="stage" id="stage">
+    <canvas id="c" aria-label="Bubble Maker demo"></canvas>
+    <p class="hint">Move the cursor over the bubbles · click an empty spot to create more</p>
+  </div>
+  <aside>
+    <div>
+      <h1>Bubble Maker <small>2.0</small></h1>
+      <p>Bubbles that grow, push each other and pack into a honeycomb. Every setting below is a plain option. <a href="https://github.com/neoligero/bubble-maker-2.0">Source on GitHub</a>.</p>
+    </div>
+    <section>
+      <h2>Behaviour</h2>
+      <div class="row"><label for="reaction">Reaction to the cursor</label><output id="o-reaction"></output><input id="reaction" type="range" min="0" max="10" step="1" value="5" /></div>
+      <div class="row"><label for="count">Bubbles</label><output id="o-count"></output><input id="count" type="range" min="5" max="60" step="1" value="28" /></div>
+      <div class="row"><label for="hoverGrow">Growth on hover</label><output id="o-hoverGrow"></output><input id="hoverGrow" type="range" min="1" max="2.4" step="0.05" value="1.6" /></div>
+      <div class="row"><label for="float">Idle drift</label><output id="o-float"></output><input id="float" type="range" min="0" max="0.05" step="0.005" value="0.015" /></div>
+      <div class="row"><label for="stiffness">Spring stiffness</label><output id="o-stiffness"></output><input id="stiffness" type="range" min="2" max="60" step="1" value="18" /></div>
+      <div class="row"><label for="damping">Damping</label><output id="o-damping"></output><input id="damping" type="range" min="0.5" max="9" step="0.1" value="3.2" /></div>
+      <div class="row"><label for="gap">Gap between bubbles</label><output id="o-gap"></output><input id="gap" type="range" min="0" max="16" step="1" value="2" /></div>
+      <div class="btns">
+        <button id="compress">Compress into a honeycomb</button>
+        <button class="line" id="shake">Shake</button>
+        <button class="line" id="dark">Dark background</button>
+      </div>
+    </section>
+    <section id="palettes"><h2>Colours</h2></section>
+    <section>
+      <h2>Your configuration</h2>
+      <pre id="code"></pre>
+      <div class="btns" style="margin-top:8px"><button id="copy">Copy code</button></div>
+    </section>
+  </aside>
+</main>
+<script src="bubble-maker.global.js"></script>
+<script>
+  const { createBubbles, defaultPalettes, getPalette } = BubbleMaker;
+  const $ = (id) => document.getElementById(id);
+  const canvas = $('c');
+  let bubbles;
+  let dark = false;
+  const palettes = {}; // only what the visitor changed
+  const KEYS = ['light', 'body', 'edge', 'rim'];
+
+  const settings = () => ({
+    count: +$('count').value,
+    reaction: +$('reaction').value,
+    hoverGrow: +$('hoverGrow').value,
+    float: +$('float').value,
+    physics: { stiffness: +$('stiffness').value, damping: +$('damping').value, gap: +$('gap').value },
+  });
+
+  function create() {
+    bubbles?.destroy();
+    const s = settings();
+    bubbles = createBubbles(canvas, { ...s, dark, palettes });
+    renderCode();
+  }
+
+  function renderCode() {
+    const s = settings();
+    const lines = ['import { createBubbles } from \'bubble-maker\';', '', 'createBubbles(canvas, {', `  count: ${s.count},`, `  reaction: ${s.reaction},`];
+    if (s.hoverGrow !== 1.6) lines.push(`  hoverGrow: ${s.hoverGrow},`);
+    if (s.float !== 0.015) lines.push(`  float: ${s.float},`);
+    lines.push(`  physics: { stiffness: ${s.physics.stiffness}, damping: ${s.physics.damping}, gap: ${s.physics.gap} },`);
+    if (dark) lines.push('  dark: true,');
+    const ps = Object.entries(palettes);
+    if (ps.length) {
+      lines.push('  palettes: {');
+      for (const [k, p] of ps) lines.push(`    ${k}: { ${Object.entries(p).map(([f, v]) => `${f}: '${v}'`).join(', ')} },`);
+      lines.push('  },');
+    }
+    lines.push('});');
+    $('code').textContent = lines.join('\n');
+  }
+
+  // sliders: behaviour that can change live does; the bubble count rebuilds
+  for (const id of ['reaction', 'count', 'hoverGrow', 'float', 'stiffness', 'damping', 'gap']) {
+    const el = $(id), out = $('o-' + id);
+    const show = () => (out.textContent = el.value);
+    show();
+    el.addEventListener('input', () => {
+      show();
+      if (!bubbles) return;
+      if (id === 'count') return create();
+      const s = settings();
+      bubbles.setReaction(s.reaction);
+      bubbles.field.stiffness = s.physics.stiffness;
+      bubbles.field.damping = s.physics.damping;
+      bubbles.field.gap = s.physics.gap;
+      bubbles.options.hoverGrow = s.hoverGrow;
+      bubbles.options.float = s.float;
+      renderCode();
+    });
+  }
+
+  // one colour editor per built-in palette
+  for (const kind of Object.keys(defaultPalettes)) {
+    const base = getPalette(kind);
+    const box = document.createElement('div');
+    box.className = 'pal';
+    box.innerHTML = `<h3>${kind}</h3><div class="swatches">${KEYS.map((k) => `<label>${k}<input type="color" data-k="${k}" value="${base[k]}"></label>`).join('')}</div>
+      <div class="row"><label>Clarity (see-through)</label><output>${base.clarity}</output><input type="range" min="0" max="1" step="0.05" value="${base.clarity}"></div>`;
+    $('palettes').append(box);
+    const set = (patch) => { palettes[kind] = { ...(palettes[kind] || {}), ...patch }; bubbles.setPalette(kind, patch); renderCode(); };
+    box.querySelectorAll('input[type=color]').forEach((i) => i.addEventListener('input', () => set({ [i.dataset.k]: i.value })));
+    const r = box.querySelector('input[type=range]');
+    r.addEventListener('input', () => { r.previousElementSibling.textContent = r.value; set({ clarity: +r.value }); });
+  }
+
+  $('compress').addEventListener('click', (e) => { const on = bubbles.toggle(); e.target.textContent = on ? 'Release the bubbles' : 'Compress into a honeycomb'; });
+  $('shake').addEventListener('click', () => { bubbles.shake(); $('compress').textContent = 'Compress into a honeycomb'; });
+  $('dark').addEventListener('click', (e) => { dark = !dark; $('stage').classList.toggle('dark', dark); e.target.textContent = dark ? 'Light background' : 'Dark background'; create(); });
+  $('copy').addEventListener('click', async (e) => { await navigator.clipboard?.writeText($('code').textContent); const t = e.target.textContent; e.target.textContent = 'Copied'; setTimeout(() => (e.target.textContent = t), 1600); });
+
+  create();
+</script>
+</body>
+</html>
